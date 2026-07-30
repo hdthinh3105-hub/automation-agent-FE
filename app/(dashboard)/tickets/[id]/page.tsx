@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { apiFetch, ApiError } from '@/lib/api-client';
-import { TicketDetail, TICKET_STATUSES } from '@/lib/types';
+import { TicketDetail } from '@/lib/types';
+import { getValidNextStatuses } from '@/lib/ticket-transitions';
 import { StatusBadge, PriorityBadge } from '@/components/status-badge';
+import TransitionTable from '@/components/transition-table';
 import { useAuth } from '@/lib/auth-context';
 
 function formatDate(iso: string | null): string {
@@ -90,6 +91,8 @@ export default function TicketDetailPage() {
 
   if (!ticket) return null;
 
+  const validNextStatuses = getValidNextStatuses(ticket.status);
+
   return (
     <div className="space-y-6">
       <div>
@@ -111,7 +114,7 @@ export default function TicketDetailPage() {
       {error && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Cột trái: thông tin + đổi trạng thái */}
+        {/* Cột trái: thông tin + đổi trạng thái + bảng ma trận */}
         <div className="space-y-6 lg:col-span-1">
           <div className="rounded-xl border border-gray-200 bg-white p-5">
             <h2 className="mb-3 text-sm font-semibold text-gray-900">Thông tin ticket</h2>
@@ -158,37 +161,50 @@ export default function TicketDetailPage() {
           {(user?.role === 'AGENT' || user?.role === 'ADMIN') && (
             <div className="rounded-xl border border-gray-200 bg-white p-5">
               <h2 className="mb-3 text-sm font-semibold text-gray-900">Đổi trạng thái</h2>
-              <select
-                value={nextStatus}
-                onChange={(e) => setNextStatus(e.target.value)}
-                className="mb-2 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
-              >
-                <option value="">Chọn trạng thái mới</option>
-                {TICKET_STATUSES.filter((s) => s !== ticket.status).map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="text"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="Lý do (tuỳ chọn)"
-                className="mb-3 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
-              />
-              <button
-                onClick={handleStatusUpdate}
-                disabled={!nextStatus || isUpdating}
-                className="w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isUpdating ? 'Đang cập nhật...' : 'Cập nhật trạng thái'}
-              </button>
-              <p className="mt-2 text-xs text-gray-400">
-                Chỉ transition hợp lệ theo State Machine mới được chấp nhận — sai sẽ báo lỗi 409.
-              </p>
+
+              {validNextStatuses.length === 0 ? (
+                <p className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500">
+                  Ticket đã ở trạng thái cuối (CLOSED) — không thể chuyển đi đâu được nữa.
+                </p>
+              ) : (
+                <>
+                  <select
+                    value={nextStatus}
+                    onChange={(e) => setNextStatus(e.target.value)}
+                    className="mb-2 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
+                  >
+                    <option value="">Chọn trạng thái mới</option>
+                    {/* CHỈ hiện transition hợp lệ theo State Machine (TDD
+                        Mục 9) — tránh Agent bấm rồi ăn lỗi 409 vô ích. */}
+                    {validNextStatuses.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    placeholder="Lý do (tuỳ chọn)"
+                    className="mb-3 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
+                  />
+                  <button
+                    onClick={handleStatusUpdate}
+                    disabled={!nextStatus || isUpdating}
+                    className="w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isUpdating ? 'Đang cập nhật...' : 'Cập nhật trạng thái'}
+                  </button>
+                </>
+              )}
             </div>
           )}
+
+          <div className="rounded-xl border border-gray-200 bg-white p-5">
+            <h2 className="mb-3 text-sm font-semibold text-gray-900">Ma trận chuyển trạng thái</h2>
+            <TransitionTable currentStatus={ticket.status} />
+          </div>
         </div>
 
         {/* Cột phải: hội thoại + timeline */}

@@ -85,4 +85,18 @@ export const TICKET_STATUSES = [
   'CLOSED',
 ] as const;
 
+export interface TicketPublicMessage {
+  id: string;
+  sender: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface TicketPublicView {
+  id: string;
+  subject: string;
+  status: string;
+  messages: TicketPublicMessage[];
+}
+
 export const PRIORITY_LEVELS = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'] as const;
