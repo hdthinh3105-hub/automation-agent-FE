@@ -1,4 +1,4 @@
-# Automation Agent — Dashboard (Frontend)
+# Automation Agent — Dashboard (Frontend) (Link Demo: https://automation-agent-fe.vercel.app)
 
 Frontend Dashboard cho hệ thống **Automation Agent** (AI Customer Support Automation) — nơi Agent/Admin quan sát và vận hành hệ thống: theo dõi ticket, xem hội thoại AI/khách hàng, đổi trạng thái theo đúng State Machine, và xem số liệu tổng quan/xu hướng. Đi kèm 1 **Web Chat Widget** public để khách hàng gửi yêu cầu mà không cần tài khoản — đúng kênh "Web" (Must-have) trong thiết kế đa kênh của backend.
 
@@ -177,4 +177,4 @@ Chỉ 1 biến môi trường công khai — không có secret nào ở phía fr
 
 ## Tài liệu liên quan
 
-- Backend `automation-agent` — README riêng của project backend, bao gồm kiến trúc đầy đủ, REST API, và `TDD-Track-D-AI-Customer-Support.md` (tài liệu thiết kế chi tiết mà UI này bám theo, đặc biệt Mục 9 — Ticket State Machine, và Mục 11 — Thiết kế REST API).
+- Backend `automation-agent` — README riêng của project backend, bao gồm kiến trúc đầy đủ, REST API, và `TDD-Track-D-AI-Customer-Support.md`- https://docs.google.com/document/d/1oIeRXqzTY-ehi3EKFmMDApNStNUflb6mWudEdIbrFOU/edit?usp=sharing (tài liệu thiết kế chi tiết mà UI này bám theo, đặc biệt Mục 9 — Ticket State Machine, và Mục 11 — Thiết kế REST API).
