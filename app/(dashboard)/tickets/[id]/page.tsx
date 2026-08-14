@@ -9,6 +9,13 @@ import { StatusBadge, PriorityBadge } from '@/components/status-badge';
 import TransitionTable from '@/components/transition-table';
 import { useAuth } from '@/lib/auth-context';
 
+const ESCALATION_REASONS = [
+  'LOW_CONFIDENCE',
+  'EXPLICIT_REQUEST',
+  'POLICY_RULE',
+  'COMPLEX_CASE',
+];
+
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
   return new Date(iso).toLocaleString('vi-VN');
@@ -36,6 +43,8 @@ export default function TicketDetailPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [nextStatus, setNextStatus] = useState('');
   const [reason, setReason] = useState('');
+  const [escalationReason, setEscalationReason] = useState('');
+  const [isEscalating, setIsEscalating] = useState(false);
 
   async function loadTicket() {
     setIsLoading(true);
@@ -71,6 +80,23 @@ export default function TicketDetailPage() {
       setError(err instanceof ApiError ? err.message : 'Không đổi được trạng thái ticket.');
     } finally {
       setIsUpdating(false);
+    }
+  }
+
+  async function handleEscalate(): Promise<void> {
+    if (!escalationReason) return;
+    setIsEscalating(true);
+    setError(null);
+    try {
+      await apiFetch('/escalations', {
+        method: 'POST',
+        body: { ticketId: ticket?.id, reason: escalationReason },
+      });
+      setEscalationReason('');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Không thể chuyển ticket cho Agent.');
+    } finally {
+      setIsEscalating(false);
     }
   }
 
@@ -195,6 +221,39 @@ export default function TicketDetailPage() {
                     className="w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isUpdating ? 'Đang cập nhật...' : 'Cập nhật trạng thái'}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
+          {(user?.role === 'AGENT' || user?.role === 'ADMIN') && (
+            <div className="rounded-xl border border-gray-200 bg-white p-5">
+              <h2 className="mb-3 text-sm font-semibold text-gray-900">Chuyển cho Agent (Escalation)</h2>
+              {ticket.status === 'ESCALATED' || ticket.status === 'IN_PROGRESS' ? (
+                <p className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500">
+                  Ticket này đã được chuyển xử lý bởi con người.
+                </p>
+              ) : (
+                <>
+                  <select
+                    value={escalationReason}
+                    onChange={(e) => setEscalationReason(e.target.value)}
+                    className="mb-2 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
+                  >
+                    <option value="">Chọn lý do chuyển</option>
+                    {ESCALATION_REASONS.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handleEscalate}
+                    disabled={!escalationReason || isEscalating}
+                    className="w-full rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isEscalating ? 'Đang chuyển...' : 'Chuyển cho Agent'}
                   </button>
                 </>
               )}

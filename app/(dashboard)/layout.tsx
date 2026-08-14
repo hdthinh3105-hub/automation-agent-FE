@@ -5,15 +5,32 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 
-const NAV_ITEMS = [
+const VIEWER_NAV_ITEMS = [
   { href: '/dashboard', label: 'Tổng quan' },
   { href: '/tickets', label: 'Ticket' },
+];
+
+const STAFF_NAV_ITEMS = [
+  { href: '/dashboard', label: 'Tổng quan' },
+  { href: '/tickets', label: 'Ticket' },
+  { href: '/escalations', label: 'Escalation' },
+  { href: '/knowledge-base', label: 'Knowledge Base' },
+  { href: '/rag', label: 'Test RAG' },
+];
+
+const ADMIN_NAV_ITEMS = [
+  ...STAFF_NAV_ITEMS,
+  { href: '/users', label: 'Người dùng' },
+  { href: '/audit-logs', label: 'Audit Logs' },
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, isLoading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+
+  const navItems =
+    user?.role === 'ADMIN' ? ADMIN_NAV_ITEMS : user?.role === 'AGENT' ? STAFF_NAV_ITEMS : VIEWER_NAV_ITEMS;
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -41,7 +58,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </div>
 
         <nav className="flex-1 space-y-1">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <Link

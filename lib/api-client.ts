@@ -116,6 +116,47 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   return json.data as T;
 }
 
+/**
+ * Gọi API kèm `multipart/form-data` (upload file — Knowledge Base, TDD
+ * Mục 5.5). Tương tự `apiFetch` nhưng không tự set `Content-Type` để
+ * trình duyệt gắn multipart boundary; vẫn tự gắn Bearer token + xử lý
+ * refresh khi 401.
+ */
+export async function apiFormFetch<T>(path: string, formData: FormData, isRetry = false): Promise<T> {
+  const accessToken = getAccessToken();
+
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'POST',
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+    body: formData,
+  });
+
+  if (res.status === 401 && !isRetry) {
+    const refreshed = await tryRefreshToken();
+    if (refreshed) {
+      return apiFormFetch<T>(path, formData, true);
+    }
+    clearTokens();
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
+    throw new ApiError('UNAUTHORIZED', 'Phiên đăng nhập đã hết hạn', 401);
+  }
+
+  const json = await res.json().catch(() => null);
+
+  if (!json) {
+    throw new Error(`Không đọc được phản hồi từ server (HTTP ${res.status})`);
+  }
+
+  if (!json.success) {
+    const err: ApiErrorShape = json.error ?? { code: 'UNKNOWN', message: 'Đã có lỗi xảy ra' };
+    throw new ApiError(err.code, err.message, res.status, err.details);
+  }
+
+  return json.data as T;
+}
+
 export function buildQueryString(params: Record<string, string | number | undefined>): string {
   const search = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
