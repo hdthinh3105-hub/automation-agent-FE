@@ -3,7 +3,7 @@
 import { FormEvent, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Bot, Send, User } from 'lucide-react';
+import { Bot, Send, User, Home } from 'lucide-react';
 import { apiFetch, ApiError } from '@/lib/api-client';
 import { TicketDetail } from '@/lib/types';
 
@@ -81,7 +81,11 @@ export default function ChatEntryPage() {
               </p>
             </div>
           </div>
-          <Link href="/" className="text-xs font-medium text-gray-400 transition hover:text-gray-600">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 shadow-sm transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900"
+          >
+            <Home className="h-3.5 w-3.5" />
             Trang chủ
           </Link>
         </div>
