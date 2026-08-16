@@ -1,26 +1,27 @@
 'use client';
 
 import { useEffect, useState, FormEvent } from 'react';
+import { UploadCloud, FileText, Trash2 } from 'lucide-react';
 import { apiFetch, apiFormFetch, buildQueryString, ApiError } from '@/lib/api-client';
 import { KnowledgeDocumentItem, PaginatedResult, DOCUMENT_STATUSES } from '@/lib/types';
 import { useAuth } from '@/lib/auth-context';
+import { Card, PageHeader, Button, Spinner, EmptyState, inputClass, Field } from '@/components/ui';
 
-const DOC_STATUS_LABELS: Record<string, string> = {
-  PENDING: 'Chờ xử lý',
-  PROCESSING: 'Đang phân tích',
-  READY: 'Sẵn sàng',
-  FAILED: 'Lỗi',
-};
-
-const DOC_STATUS_STYLES: Record<string, string> = {
-  PENDING: 'bg-gray-100 text-gray-700',
-  PROCESSING: 'bg-blue-100 text-blue-700',
-  READY: 'bg-emerald-100 text-emerald-700',
-  FAILED: 'bg-red-100 text-red-700',
+const DOC_STATUS_META: Record<string, { label: string; cls: string; dot: string }> = {
+  PENDING: { label: 'Chờ xử lý', cls: 'bg-gray-100 text-gray-600', dot: 'bg-gray-400' },
+  PROCESSING: { label: 'Đang phân tích', cls: 'bg-blue-50 text-blue-700', dot: 'bg-blue-500' },
+  READY: { label: 'Sẵn sàng', cls: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' },
+  FAILED: { label: 'Lỗi', cls: 'bg-red-50 text-red-700', dot: 'bg-red-500' },
 };
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString('vi-VN');
+  return new Date(iso).toLocaleString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 export default function KnowledgeBasePage() {
@@ -31,7 +32,6 @@ export default function KnowledgeBasePage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Upload form
   const [title, setTitle] = useState('');
   const [tags, setTags] = useState('');
   const [file, setFile] = useState<File | null>(null);
@@ -93,168 +93,167 @@ export default function KnowledgeBasePage() {
     }
   }
 
+  const readyCount = result?.items.filter((d) => d.status === 'READY').length ?? 0;
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-lg font-semibold text-gray-900">Knowledge Base</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Tài liệu nguồn cho RAG — AI tra cứu ở đây để trả lời khách hàng.
-        </p>
-      </div>
+      <PageHeader
+        title="Knowledge Base"
+        description="Tài liệu nguồn cho RAG — AI tra cứu ở đây để trả lời khách hàng."
+        action={
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+            <FileText className="h-3.5 w-3.5" /> {readyCount} tài liệu sẵn sàng
+          </span>
+        }
+      />
 
-      <form
-        onSubmit={handleUpload}
-        className="rounded-xl border border-gray-200 bg-white p-5"
-      >
-        <h2 className="mb-3 text-sm font-semibold text-gray-900">Upload tài liệu mới</h2>
+      <form onSubmit={handleUpload} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-card">
+        <div className="mb-4 flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50">
+            <UploadCloud className="h-4 w-4 text-brand-600" />
+          </span>
+          <h2 className="text-sm font-semibold text-gray-900">Upload tài liệu mới</h2>
+        </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Tiêu đề (mặc định = tên file)"
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
-          />
-          <input
-            type="text"
-            value={tags}
-            onChange={(e) => setTags(e.target.value)}
-            placeholder="Tags, cách nhau bởi dấu phẩy"
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
-          />
-          <input
-            type="file"
-            required
-            accept=".pdf,.docx,.txt,.md"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-1 file:text-brand-700"
-          />
+          <Field label="Tiêu đề">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Mặc định = tên file"
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Tags">
+            <input
+              type="text"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              placeholder="cách nhau bởi dấu phẩy"
+              className={inputClass}
+            />
+          </Field>
+          <Field label="File (PDF / DOCX / TXT / MD)">
+            <input
+              type="file"
+              required
+              accept=".pdf,.docx,.txt,.md"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700"
+            />
+          </Field>
         </div>
         {uploadError && (
-          <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{uploadError}</div>
+          <div className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{uploadError}</div>
         )}
-        <button
-          type="submit"
-          disabled={isUploading}
-          className="mt-4 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        <Button type="submit" disabled={isUploading} className="mt-4">
           {isUploading ? 'Đang upload...' : 'Upload'}
-        </button>
+        </Button>
       </form>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-2">
         <select
           value={status}
           onChange={(e) => {
             setStatus(e.target.value);
             setPage(1);
           }}
-          className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
+          className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
         >
           <option value="">Mọi trạng thái</option>
           {DOCUMENT_STATUSES.map((s) => (
             <option key={s} value={s}>
-              {DOC_STATUS_LABELS[s] ?? s}
+              {DOC_STATUS_META[s]?.label ?? s}
             </option>
           ))}
         </select>
       </div>
 
-      {error && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-gray-200 bg-gray-50 text-xs uppercase text-gray-500">
-              <th className="px-4 py-3">Tiêu đề</th>
-              <th className="px-4 py-3">Trạng thái</th>
-              <th className="px-4 py-3">Phiên bản</th>
-              <th className="px-4 py-3">Tags</th>
-              <th className="px-4 py-3">Tạo lúc</th>
-              {user?.role === 'ADMIN' && <th className="px-4 py-3" />}
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading && (
-              <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-sm text-gray-500">
-                  Đang tải...
-                </td>
-              </tr>
-            )}
-            {!isLoading && result?.items.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-sm text-gray-500">
-                  Chưa có tài liệu nào trong Knowledge Base.
-                </td>
-              </tr>
-            )}
-            {result?.items.map((doc) => (
-              <tr key={doc.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                <td className="px-4 py-3 font-medium text-gray-900">{doc.title}</td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      DOC_STATUS_STYLES[doc.status] ?? 'bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    {DOC_STATUS_LABELS[doc.status] ?? doc.status}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-gray-600">v{doc.version}</td>
-                <td className="px-4 py-3">
-                  {doc.tags.length === 0 ? (
-                    <span className="text-gray-400">—</span>
-                  ) : (
-                    <div className="flex flex-wrap gap-1">
-                      {doc.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600"
-                        >
-                          {tag}
+      {isLoading ? (
+        <div className="flex items-center gap-2 py-12 text-sm text-gray-500">
+          <Spinner /> Đang tải...
+        </div>
+      ) : result?.items.length === 0 ? (
+        <EmptyState title="Chưa có tài liệu nào" description="Upload tài liệu đầu tiên để bắt đầu xây dựng Knowledge Base." />
+      ) : (
+        <Card className="overflow-hidden p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 bg-surface-50 text-xs uppercase tracking-wide text-gray-500">
+                  <th className="px-5 py-3">Tiêu đề</th>
+                  <th className="px-5 py-3">Trạng thái</th>
+                  <th className="px-5 py-3">Phiên bản</th>
+                  <th className="px-5 py-3">Tags</th>
+                  <th className="px-5 py-3">Tạo lúc</th>
+                  {user?.role === 'ADMIN' && <th className="px-5 py-3" />}
+                </tr>
+              </thead>
+              <tbody>
+                {result?.items.map((doc) => {
+                  const meta = DOC_STATUS_META[doc.status] ?? { label: doc.status, cls: 'bg-gray-100 text-gray-700', dot: 'bg-gray-400' };
+                  return (
+                    <tr key={doc.id} className="border-b border-gray-50 last:border-0 hover:bg-surface-50/60">
+                      <td className="px-5 py-3 font-medium text-gray-900">{doc.title}</td>
+                      <td className="px-5 py-3">
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${meta.cls}`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+                          {meta.label}
                         </span>
-                      ))}
-                    </div>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-gray-500">{formatDate(doc.createdAt)}</td>
-                {user?.role === 'ADMIN' && (
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => handleDelete(doc.id)}
-                      className="text-xs font-medium text-red-600 hover:underline"
-                    >
-                      Xoá
-                    </button>
-                  </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                      </td>
+                      <td className="px-5 py-3 text-gray-600">v{doc.version}</td>
+                      <td className="px-5 py-3">
+                        {doc.tags.length === 0 ? (
+                          <span className="text-gray-400">—</span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {doc.tags.map((tag) => (
+                              <span key={tag} className="rounded-lg bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-5 py-3 text-gray-500">{formatDate(doc.createdAt)}</td>
+                      {user?.role === 'ADMIN' && (
+                        <td className="px-5 py-3 text-right">
+                          <button
+                            onClick={() => handleDelete(doc.id)}
+                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" /> Xoá
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {result && result.meta.totalPages > 1 && (
         <div className="flex items-center justify-between text-sm text-gray-600">
           <span>
-            Trang {result.meta.page} / {result.meta.totalPages}
+            Trang {result.meta.page} / {result.meta.totalPages} · {result.meta.totalItems} tài liệu
           </span>
           <div className="flex gap-2">
-            <button
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-40"
-            >
+            <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
               Trước
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               disabled={page >= result.meta.totalPages}
               onClick={() => setPage((p) => p + 1)}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Sau
-            </button>
+            </Button>
           </div>
         </div>
       )}

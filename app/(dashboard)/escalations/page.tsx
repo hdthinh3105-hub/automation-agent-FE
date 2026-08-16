@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Clock, CheckCircle2, Inbox } from 'lucide-react';
 import { apiFetch, buildQueryString, ApiError } from '@/lib/api-client';
 import { EscalationItem, PaginatedResult, ESCALATION_STATUSES } from '@/lib/types';
+import { Card, PageHeader, Button, Spinner, EmptyState, inputClass } from '@/components/ui';
 
 const ESC_STATUS_LABELS: Record<string, string> = {
   PENDING: 'Đang chờ xử lý',
@@ -12,14 +14,27 @@ const ESC_STATUS_LABELS: Record<string, string> = {
 };
 
 const ESC_STATUS_STYLES: Record<string, string> = {
-  PENDING: 'bg-amber-100 text-amber-700',
-  ACKNOWLEDGED: 'bg-blue-100 text-blue-700',
-  RESOLVED: 'bg-emerald-100 text-emerald-700',
+  PENDING: 'bg-amber-50 text-amber-700',
+  ACKNOWLEDGED: 'bg-blue-50 text-blue-700',
+  RESOLVED: 'bg-emerald-50 text-emerald-700',
+};
+
+const ESC_REASON_LABEL: Record<string, string> = {
+  LOW_CONFIDENCE: 'AI không chắc chắn',
+  EXPLICIT_REQUEST: 'Khách yêu cầu gặp người',
+  POLICY_RULE: 'Theo quy định',
+  COMPLEX_CASE: 'Ca phức tạp',
 };
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
-  return new Date(iso).toLocaleString('vi-VN');
+  return new Date(iso).toLocaleString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 function isOverdue(deadline: string, status: string): boolean {
@@ -84,23 +99,30 @@ export default function EscalationsPage() {
     }
   }
 
+  const pendingCount = result?.items.filter((e) => e.status === 'PENDING').length ?? 0;
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-lg font-semibold text-gray-900">Escalation</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Ticket được chuyển cho nhân viên hỗ trợ — theo dõi SLA và xử lý tại đây.
-        </p>
-      </div>
+      <PageHeader
+        title="Escalation"
+        description="Ticket được chuyển cho nhân viên hỗ trợ — theo dõi SLA và xử lý tại đây."
+        action={
+          pendingCount > 0 ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">
+              <Clock className="h-3.5 w-3.5" /> {pendingCount} đang chờ xử lý
+            </span>
+          ) : undefined
+        }
+      />
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-2">
         <select
           value={status}
           onChange={(e) => {
             setStatus(e.target.value);
             setPage(1);
           }}
-          className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
+          className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
         >
           <option value="">Mọi trạng thái</option>
           {ESCALATION_STATUSES.map((s) => (
@@ -111,122 +133,120 @@ export default function EscalationsPage() {
         </select>
       </div>
 
-      {error && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-gray-200 bg-gray-50 text-xs uppercase text-gray-500">
-              <th className="px-4 py-3">Lý do</th>
-              <th className="px-4 py-3">Ticket</th>
-              <th className="px-4 py-3">Trạng thái</th>
-              <th className="px-4 py-3">SLA hạn chót</th>
-              <th className="px-4 py-3">Ghi chú giải quyết</th>
-              <th className="px-4 py-3">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading && (
-              <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-sm text-gray-500">
-                  Đang tải...
-                </td>
-              </tr>
-            )}
-            {!isLoading && result?.items.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-sm text-gray-500">
-                  Không có escalation nào khớp bộ lọc.
-                </td>
-              </tr>
-            )}
-            {result?.items.map((esc) => (
-              <tr key={esc.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                <td className="px-4 py-3 text-gray-800">{esc.reason}</td>
-                <td className="px-4 py-3">
-                  <Link
-                    href={`/tickets/${esc.ticketId}`}
-                    className="font-medium text-brand-600 hover:underline"
-                  >
-                    {esc.ticketId.slice(0, 8)}
-                  </Link>
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      ESC_STATUS_STYLES[esc.status] ?? 'bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    {ESC_STATUS_LABELS[esc.status] ?? esc.status}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <span className={isOverdue(esc.slaDeadline, esc.status) ? 'font-medium text-red-600' : 'text-gray-600'}>
-                    {formatDate(esc.slaDeadline)}
-                    {isOverdue(esc.slaDeadline, esc.status) && ' ⚠️'}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-gray-600">
-                  {esc.status === 'RESOLVED' ? (
-                    esc.resolutionNote || <span className="text-gray-400">—</span>
-                  ) : (
-                    <input
-                      type="text"
-                      value={resolveNote}
-                      onChange={(e) => setResolveNote(e.target.value)}
-                      placeholder="Ghi chú khi giải quyết"
-                      className="w-full rounded-lg border border-gray-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
-                    />
-                  )}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  {esc.status === 'PENDING' && (
-                    <button
-                      disabled={busyId === esc.id}
-                      onClick={() => handleAcknowledge(esc.id)}
-                      className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-brand-700 disabled:opacity-50"
-                    >
-                      {busyId === esc.id ? 'Đang xử lý...' : 'Nhận ticket'}
-                    </button>
-                  )}
-                  {esc.status === 'ACKNOWLEDGED' && (
-                    <button
-                      disabled={busyId === esc.id}
-                      onClick={() => handleResolve(esc.id)}
-                      className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50"
-                    >
-                      {busyId === esc.id ? 'Đang lưu...' : 'Xử lý xong'}
-                    </button>
-                  )}
-                  {esc.status === 'RESOLVED' && <span className="text-xs text-gray-400">—</span>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {isLoading ? (
+        <div className="flex items-center gap-2 py-12 text-sm text-gray-500">
+          <Spinner /> Đang tải...
+        </div>
+      ) : result?.items.length === 0 ? (
+        <EmptyState title="Không có escalation nào" description="Không tìm thấy escalation khớp bộ lọc hiện tại." />
+      ) : (
+        <Card className="overflow-hidden p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 bg-surface-50 text-xs uppercase tracking-wide text-gray-500">
+                  <th className="px-5 py-3">Lý do</th>
+                  <th className="px-5 py-3">Ticket</th>
+                  <th className="px-5 py-3">Trạng thái</th>
+                  <th className="px-5 py-3">SLA hạn chót</th>
+                  <th className="px-5 py-3">Ghi chú giải quyết</th>
+                  <th className="px-5 py-3 text-right">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {result?.items.map((esc) => (
+                  <tr key={esc.id} className="border-b border-gray-50 last:border-0 hover:bg-surface-50/60">
+                    <td className="px-5 py-3">
+                      <span className="rounded-lg bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
+                        {ESC_REASON_LABEL[esc.reason] ?? esc.reason}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3">
+                      <Link href={`/tickets/${esc.ticketId}`} className="font-medium text-brand-600 hover:underline">
+                        #{esc.ticketId.slice(0, 8)}
+                      </Link>
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${ESC_STATUS_STYLES[esc.status] ?? 'bg-gray-100 text-gray-700'}`}>
+                        {ESC_STATUS_LABELS[esc.status] ?? esc.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className={`inline-flex items-center gap-1 text-sm ${isOverdue(esc.slaDeadline, esc.status) ? 'font-medium text-red-600' : 'text-gray-600'}`}>
+                        {isOverdue(esc.slaDeadline, esc.status) && <Clock className="h-3.5 w-3.5" />}
+                        {formatDate(esc.slaDeadline)}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-gray-600">
+                      {esc.status === 'RESOLVED' ? (
+                        esc.resolutionNote || <span className="text-gray-400">—</span>
+                      ) : (
+                        <input
+                          type="text"
+                          value={resolveNote}
+                          onChange={(e) => setResolveNote(e.target.value)}
+                          placeholder="Ghi chú khi giải quyết"
+                          className={inputClass}
+                        />
+                      )}
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      {esc.status === 'PENDING' && (
+                        <Button size="sm" disabled={busyId === esc.id} onClick={() => handleAcknowledge(esc.id)}>
+                          {busyId === esc.id ? 'Đang xử lý...' : 'Nhận ticket'}
+                        </Button>
+                      )}
+                      {esc.status === 'ACKNOWLEDGED' && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                          disabled={busyId === esc.id}
+                          onClick={() => handleResolve(esc.id)}
+                        >
+                          {busyId === esc.id ? 'Đang lưu...' : 'Xử lý xong'}
+                        </Button>
+                      )}
+                      {esc.status === 'RESOLVED' && (
+                        <span className="inline-flex items-center gap-1 text-xs text-emerald-600">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Đã xong
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {result && result.meta.totalPages > 1 && (
         <div className="flex items-center justify-between text-sm text-gray-600">
           <span>
-            Trang {result.meta.page} / {result.meta.totalPages}
+            Trang {result.meta.page} / {result.meta.totalPages} · {result.meta.totalItems} escalation
           </span>
           <div className="flex gap-2">
-            <button
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-40"
-            >
+            <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
               Trước
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               disabled={page >= result.meta.totalPages}
               onClick={() => setPage((p) => p + 1)}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Sau
-            </button>
+            </Button>
           </div>
+        </div>
+      )}
+
+      {pendingCount === 0 && result && result.items.length > 0 && (
+        <div className="flex items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm text-emerald-800">
+          <Inbox className="h-4 w-4" /> Không còn escalation nào đang chờ xử lý.
         </div>
       )}
     </div>
