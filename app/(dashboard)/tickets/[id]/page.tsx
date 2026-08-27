@@ -6,7 +6,7 @@ import { ArrowLeft, Bot, User, Headset, AlertTriangle, RotateCcw } from 'lucide-
 import { apiFetch, ApiError } from '@/lib/api-client';
 import { TicketDetail } from '@/lib/types';
 import { getValidNextStatuses } from '@/lib/ticket-transitions';
-import { StatusBadge, PriorityBadge } from '@/components/status-badge';
+import { StatusBadge, PriorityBadge, getStatusLabel } from '@/components/status-badge';
 import { Card, PageHeader, Button, Spinner, inputClass } from '@/components/ui';
 import TransitionTable from '@/components/transition-table';
 import { useAuth } from '@/lib/auth-context';
@@ -213,7 +213,7 @@ export default function TicketDetailPage() {
                     <option value="">Chọn trạng thái mới</option>
                     {validNextStatuses.map((s) => (
                       <option key={s} value={s}>
-                        {s}
+                        {getStatusLabel(s)}
                       </option>
                     ))}
                   </select>

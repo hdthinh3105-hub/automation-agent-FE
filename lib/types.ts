@@ -179,3 +179,33 @@ export interface RagAnswer {
   model: string;
   latencyMs: number;
 }
+
+// ---- Settings (Admin Module) ----
+export interface SystemSettingItem {
+  id: string;
+  key: string;
+  value: unknown;
+  category: string;
+  label: string | null;
+  updatedAt: string;
+}
+
+export interface CategoryItem {
+  id: string;
+  name: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface RoutingRuleItem {
+  id: string;
+  name: string;
+  description: string | null;
+  isActive: boolean;
+  priority: number;
+  conditions: unknown;
+  action: string;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

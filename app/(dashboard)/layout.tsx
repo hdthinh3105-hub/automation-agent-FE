@@ -13,6 +13,7 @@ import {
   ScrollText,
   LogOut,
   Bot,
+  Settings,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 
@@ -40,6 +41,7 @@ const ADMIN_NAV: NavItem[] = [
   ...STAFF_NAV,
   { href: '/users', label: 'Người dùng', icon: Users },
   { href: '/audit-logs', label: 'Audit Logs', icon: ScrollText },
+  { href: '/settings', label: 'Cài đặt', icon: Settings },
 ];
 
 const ROLE_LABEL: Record<string, string> = {
