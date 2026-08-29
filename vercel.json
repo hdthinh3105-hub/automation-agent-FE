@@ -1,0 +1,1 @@
+{"$schema":"https://openapi.vercel.sh/vercel.json","ignoreCommand":"case \"$VERCEL_GIT_COMMIT_REF\" in dependabot/*) echo skipping-dependabot; exit 0;; *) exit 1;; esac"}
