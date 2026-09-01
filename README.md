@@ -130,14 +130,34 @@ automation-agent-FE/
 
 ## Cài đặt & Chạy thử
 
+### Chạy nhanh bằng Docker (30 giây)
+
+Cách nhanh nhất để chạy dashboard production (Next.js standalone) chỉ với Docker:
+
+```bash
+git clone <repo-url> be && cd be   # trước tiên chạy backend, xem README backend
+git clone <repo-url> fe && cd fe
+
+cp .env.local.example .env.local
+# → NEXT_PUBLIC_API_BASE_URL trỏ đúng về backend, mặc định http://localhost:3000/api
+
+docker compose up -d --build
+```
+
+Kiểm tra: mở `http://localhost:3001` → đăng nhập bằng tài khoản admin đã seed ở backend.
+
+> **Các port khi chạy Docker:** frontend ở `3001` (đã cấu hình để không đụng port `3000` của backend).
+
+> **Yêu cầu backend:** dashboard cần backend `automation-agent` đang chạy (xem "Chạy nhanh bằng Docker" ở README backend) — frontend chỉ là "cửa sổ quan sát", mọi logic nghiệp vụ nằm ở backend.
+
 ### Yêu cầu
-- Node.js ≥ 18.17
+- Node.js ≥ 18.17 (nếu chạy dev thay vì Docker)
 - Backend `automation-agent` đã chạy (xem README của project backend)
 
 ### Chạy local (dev)
 ```bash
-git clone <repo-url> automation-agent-fe
-cd automation-agent-fe
+git clone <repo-url> fe
+cd fe
 npm install
 
 cp .env.local.example .env.local

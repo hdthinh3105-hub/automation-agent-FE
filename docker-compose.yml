@@ -1,0 +1,27 @@
+# Docker Compose cho Frontend (Next.js) chạy local.
+#
+# Cách dùng:
+#   1. (tuỳ chọn) cp .env.local.example .env.local  và chỉnh NEXT_PUBLIC_API_BASE_URL
+#   2. docker compose up --build
+#   - Frontend -> http://localhost:3001
+#
+# Mặc định frontend gọi backend tại http://localhost:3000/api (chạy BE riêng).
+# Nếu backend chạy bằng Docker Compose BE thì giữ nguyên; nếu host khác thì
+# đổi biến build NEXT_PUBLIC_API_BASE_URL hoặc bỏ qua arg để dùng default.
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:3000/api}
+    container_name: acs-frontend
+    restart: unless-stopped
+    environment:
+      PORT: "3001"
+    ports:
+      - "3001:3001"
+    env_file:
+      - path: .env.local
+        required: false
