@@ -214,7 +214,7 @@ GitHub Actions tự chạy mỗi lần push `main`/PR (xem `.github/workflows/ci
 | `typecheck` | `npm run typecheck` | TypeScript strict |
 | `build` | `npm run build` | Build production + smoke-build Docker image, upload artifact `.next/` |
 
-- **Deploy Vercel** (tuỳ chọn, xem `.github/workflows/deploy.yml`): chạy tay bằng **Actions → Deploy Vercel → Run workflow**. Cần set 3 secrets `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` và chạy `npx vercel link` 1 lần ở local (commit `.vercel/project.json`). Chưa set secrets thì job tự bỏ qua, không fail.
+- **Deploy Vercel (tự động)**: không cần workflow Actions riêng — sau khi **liên kết repo trên Vercel** (Vercel → Add New Project → import `automation-agent-FE`), mỗi lần push `main` Vercel **tự detect, build và deploy preview/production**. `vercel.json` có sẵn để **bỏ qua build** cho nhánh `dependabot/*`. Chỉ cần đặt **Environment Variable** `NEXT_PUBLIC_API_BASE_URL` trong Vercel Project Settings (trỏ backend Render, vd `https://<your-api>.onrender.com/api`) — build-time sẽ dân vào bundle.
 - **Dependabot** cập nhật theo nhóm (next/react/typescript/tailwind, Docker, GitHub Actions) — ưu tiên review qua CI.
 
 ---
