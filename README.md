@@ -135,8 +135,10 @@ automation-agent-FE/
 Cách nhanh nhất để chạy dashboard production (Next.js standalone) chỉ với Docker:
 
 ```bash
-git clone https://github.com/hdthinh3105-hub/automation-agent-BE.git be && cd be   # trước tiên chạy backend, xem README backend
-git clone https://github.com/hdthinh3105-hub/automation-agent-FE.git fe && cd fe
+# 1. Chạy backend trước (xem README backend)
+git clone https://github.com/hdthinh3105-hub/automation-agent-BE.git
+git clone https://github.com/hdthinh3105-hub/automation-agent-FE.git
+cd automation-agent-FE
 
 cp .env.local.example .env.local
 # → NEXT_PUBLIC_API_BASE_URL trỏ đúng về backend, mặc định http://localhost:3000/api
